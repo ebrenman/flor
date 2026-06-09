@@ -105,7 +105,7 @@
     .hero-hint {
       position: absolute;
       bottom: 2.2rem; left: 2.5rem;
-      z-index: 20;
+      z-index: 30;
       font-size: 0.72rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -119,7 +119,7 @@
     .hero-panel {
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      z-index: 25;
+      z-index: 30;
       padding: 2rem 2.5rem;
       display: flex;
       align-items: flex-end;
@@ -409,6 +409,9 @@
       </g>
     </svg>
 
+    <!-- Overlay invisible que captura TODOS los eventos por encima del SVG -->
+    <div id="heroOverlay" style="position:absolute;inset:0;z-index:15;touch-action:none;"></div>
+
     <div class="hero-hint" id="heroHint">tocá para explorar</div>
 
     <div class="hero-panel" id="heroPanel">
@@ -647,22 +650,20 @@
       hint.classList.add('hidden');
     }
 
-    // ── Touch — fuente de verdad en mobile ──
-    hero.addEventListener('touchend', (e) => {
-      if (e.target === irBtn) return;
-      lastTouchEnd = Date.now();
-      const t = e.changedTouches[0];
-      selectBlob(closestBlob(t.clientX, t.clientY));
-    }, { passive: true });
+    // ── Overlay — captura todo, sin interferencia del SVG ──
+    const overlay = document.getElementById('heroOverlay');
 
-    // ── Click — solo desktop (ignorar si viene de touch) ──
-    hero.addEventListener('click', (e) => {
-      if (Date.now() - lastTouchEnd < 500) return; // viene de touch, ignorar
-      if (e.target === irBtn) return;
-      selectBlob(closestBlob(e.clientX, e.clientY));
+    function handleTap(clientX, clientY) {
+      selectBlob(closestBlob(clientX, clientY));
+    }
+
+    // Touch: usamos pointerup sobre el overlay
+    overlay.addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      handleTap(e.clientX, e.clientY);
     });
 
-    // ── Botón IR ──
+    // ── Botón IR — está por encima del overlay (z-index mayor) ──
     irBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!selectedBlob) return;
