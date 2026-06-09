@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Florencia Polimeni</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -34,7 +34,7 @@
     #hero {
       position: relative;
       width: 100vw;
-      height: 100vh;
+      height: 100dvh; /* dvh = dynamic viewport height, excluye barras del browser */
       background: var(--dark);
       overflow: hidden;
       cursor: default;
@@ -104,24 +104,26 @@
     /* Hint abajo */
     .hero-hint {
       position: absolute;
-      bottom: 2.2rem; left: 2.5rem; right: 2.5rem;
+      bottom: calc(2.2rem + env(safe-area-inset-bottom, 0px));
+      left: 2.5rem; right: 2.5rem;
       z-index: 30;
       font-size: 0.72rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       white-space: nowrap;
-      color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,0.85);
       pointer-events: none;
       transition: opacity 0.25s, visibility 0.25s;
     }
     .hero-hint.hidden { opacity: 0; visibility: hidden; }
 
-    /* Panel de sección seleccionada — abajo */
+    /* Panel de sección */
     .hero-panel {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      z-index: 50;           /* siempre encima de todo */
-      padding: 2rem 2.5rem;
+      bottom: calc(env(safe-area-inset-bottom, 0px));
+      left: 0; right: 0;
+      z-index: 50;
+      padding: 1.5rem 2.5rem;
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
@@ -410,8 +412,8 @@
       </g>
     </svg>
 
-    <!-- Overlay invisible — solo cubre la zona de los blobs, no el panel inferior -->
-    <div id="heroOverlay" style="position:absolute;top:0;left:0;right:0;bottom:120px;z-index:15;touch-action:none;"></div>
+    <!-- Overlay invisible — no cubre la zona del hint/panel -->
+    <div id="heroOverlay" style="position:absolute;top:0;left:0;right:0;bottom:180px;z-index:15;touch-action:none;"></div>
 
     <div class="hero-hint" id="heroHint">tocá para explorar</div>
 
