@@ -93,42 +93,78 @@
 
     /* Cada blob */
     .blob-shape {
-      cursor: pointer;
-      transition: filter 0.4s ease;
-      filter: brightness(0.7) saturate(0.6);
+      cursor: crosshair;
+      transition: filter 0.35s ease;
+      filter: brightness(0.65) saturate(0.5);
     }
-    .blob-shape:hover,
     .blob-shape.active {
-      filter: brightness(1) saturate(1.1);
+      filter: brightness(1.05) saturate(1.15);
     }
 
-    /* Label que aparece al hover */
-    .blob-label {
+    /* Barra inferior de la hero */
+    .hero-bottom {
       position: absolute;
+      bottom: 0; left: 0; right: 0;
+      z-index: 20;
+      padding: 2rem 2.5rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
       pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s ease, transform 0.3s ease;
-      transform: translateY(6px);
-      text-align: center;
     }
-    .blob-label.visible {
+
+    .hero-hint {
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.22);
+      transition: opacity 0.4s;
+    }
+    .hero-hint.hidden { opacity: 0; }
+
+    /* Nombre de sección que aparece al arrastrar */
+    .hero-section-reveal {
+      text-align: right;
+      pointer-events: none;
+    }
+    .hero-section-reveal .sec-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.4rem, 4vw, 2.4rem);
+      color: white;
+      line-height: 1.1;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.25s ease, transform 0.25s ease, color 0.3s ease;
+      display: block;
+    }
+    .hero-section-reveal .sec-sub {
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease 0.05s, transform 0.25s ease 0.05s;
+      display: block;
+      margin-top: 0.3rem;
+    }
+    .hero-section-reveal.visible .sec-name,
+    .hero-section-reveal.visible .sec-sub {
       opacity: 1;
       transform: translateY(0);
     }
-    .blob-label-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: clamp(1.1rem, 2.5vw, 1.8rem);
-      color: white;
-      line-height: 1.2;
-      text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+
+    /* Línea de color que cambia */
+    .hero-color-line {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: white;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.35s ease, background 0.3s ease;
     }
-    .blob-label-sub {
-      font-size: 0.72rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.55);
-      margin-top: 0.3rem;
-    }
+    .hero-color-line.visible { transform: scaleX(1); }
 
     /* Nav — aparece al bajar del hero */
     nav {
@@ -362,14 +398,15 @@
       </g>
     </svg>
 
-    <!-- Labels flotantes — JS los posiciona sobre cada blob -->
-    <div id="label-democracia"   class="blob-label"><div class="blob-label-title">Democracia<br>&amp; Política</div><div class="blob-label-sub">innovación · legislatura</div></div>
-    <div id="label-agroecologia" class="blob-label"><div class="blob-label-title">Agroecología<br>&amp; Tierra</div><div class="blob-label-sub">cooperativa · permacultura</div></div>
-    <div id="label-educacion"    class="blob-label"><div class="blob-label-title">Educación<br>&amp; Mentoría</div><div class="blob-label-sub">docencia · liderazgo</div></div>
-    <div id="label-cultura"      class="blob-label"><div class="blob-label-title">Cultura<br>&amp; Arte</div><div class="blob-label-sub">TEDx · teatro · arte</div></div>
-    <div id="label-comunicacion" class="blob-label"><div class="blob-label-title">Comunicación</div><div class="blob-label-sub">periodismo · ONU · BID</div></div>
-
-    <div class="hero-hint">tocá para explorar</div>
+    <!-- Barra inferior -->
+    <div class="hero-bottom">
+      <div class="hero-hint" id="heroHint">arrastrá para explorar</div>
+      <div class="hero-section-reveal" id="sectionReveal">
+        <span class="sec-name" id="secName"></span>
+        <span class="sec-sub"  id="secSub"></span>
+      </div>
+    </div>
+    <div class="hero-color-line" id="colorLine"></div>
   </section>
 
   <!-- ─── SECCIÓN DEMOCRACIA ─── -->
@@ -500,70 +537,104 @@
 
   <script>
     // ── NAV al salir del hero ──
-    const nav = document.getElementById('nav');
-    const hero = document.getElementById('hero');
-    new IntersectionObserver(([e]) => nav.classList.toggle('visible', !e.isIntersecting), { threshold: 0.1 }).observe(hero);
+    new IntersectionObserver(([e]) => document.getElementById('nav').classList.toggle('visible', !e.isIntersecting), { threshold: 0.1 })
+      .observe(document.getElementById('hero'));
 
     // ── Config de cada blob ──
-    // cx/cy base en el viewBox (1000x650), radio de oscilación, velocidad
     const BLOBS = [
-      { id: 'democracia',   baseCx: 420, baseCy: 280, ampX: 55, ampY: 45, period: 7200,  phase: 0.0 },
-      { id: 'agroecologia', baseCx: 300, baseCy: 420, ampX: 45, ampY: 55, period: 9100,  phase: 1.1 },
-      { id: 'educacion',    baseCx: 560, baseCy: 230, ampX: 50, ampY: 40, period: 8300,  phase: 2.3 },
-      { id: 'cultura',      baseCx: 650, baseCy: 400, ampX: 40, ampY: 55, period: 10200, phase: 3.7 },
-      { id: 'comunicacion', baseCx: 450, baseCy: 470, ampX: 55, ampY: 40, period: 7800,  phase: 5.0 },
+      { id: 'democracia',   baseCx: 420, baseCy: 280, ampX: 55, ampY: 45, period: 7200,  phase: 0.0, color: '#7B4FBE', label: 'Democracia\n& Política',    sub: 'innovación · legislatura · CABA' },
+      { id: 'agroecologia', baseCx: 300, baseCy: 420, ampX: 45, ampY: 55, period: 9100,  phase: 1.1, color: '#4A7C59', label: 'Agroecología\n& Tierra',      sub: 'cooperativa · permacultura' },
+      { id: 'educacion',    baseCx: 560, baseCy: 230, ampX: 50, ampY: 40, period: 8300,  phase: 2.3, color: '#D4723A', label: 'Educación\n& Mentoría',       sub: 'docencia · liderazgo · Ashoka' },
+      { id: 'cultura',      baseCx: 650, baseCy: 400, ampX: 40, ampY: 55, period: 10200, phase: 3.7, color: '#C94F7B', label: 'Cultura\n& Arte',              sub: 'TEDx · teatro · arte' },
+      { id: 'comunicacion', baseCx: 450, baseCy: 470, ampX: 55, ampY: 40, period: 7800,  phase: 5.0, color: '#3A6EA5', label: 'Comunicación',                 sub: 'periodismo · ONU · BID' },
     ];
 
-    // ── Interactividad ──
-    const svg = document.getElementById('blob-canvas');
-    const svgRect = () => svg.getBoundingClientRect();
-
-    // Posición actual de cada blob (se actualiza en el loop)
     const blobState = {};
     BLOBS.forEach(b => { blobState[b.id] = { cx: b.baseCx, cy: b.baseCy }; });
 
-    // Label hover — posicionar sobre el centro actual del blob
-    function showLabel(id) {
-      const label = document.getElementById('label-' + id);
-      const r = svgRect();
-      const vbW = 1000, vbH = 650;
-      const scaleX = r.width  / vbW;
-      const scaleY = r.height / vbH;
-      const state  = blobState[id];
-      label.style.left = (r.left + state.cx * scaleX) + 'px';
-      label.style.top  = (r.top  + state.cy * scaleY) + 'px';
-      label.style.transform = 'translate(-50%, -50%)';
-      label.style.position = 'fixed';
-      label.classList.add('visible');
+    // ── UI refs ──
+    const hint        = document.getElementById('heroHint');
+    const reveal      = document.getElementById('sectionReveal');
+    const secName     = document.getElementById('secName');
+    const secSub      = document.getElementById('secSub');
+    const colorLine   = document.getElementById('colorLine');
+
+    let activeBlob    = null;
+    let isDragging    = false;
+
+    function activateBlob(b) {
+      if (activeBlob?.id === b?.id) return;
+      // desactivar anterior
+      if (activeBlob) document.getElementById('blob-' + activeBlob.id).classList.remove('active');
+      activeBlob = b;
+      if (!b) {
+        reveal.classList.remove('visible');
+        colorLine.classList.remove('visible');
+        hint.classList.remove('hidden');
+        return;
+      }
+      document.getElementById('blob-' + b.id).classList.add('active');
+      const [line1, line2] = b.label.split('\n');
+      secName.innerHTML   = line2 ? `${line1}<br>${line2}` : line1;
+      secSub.textContent  = b.sub;
+      colorLine.style.background = b.color;
+      reveal.classList.add('visible');
+      colorLine.classList.add('visible');
+      hint.classList.add('hidden');
     }
 
-    BLOBS.forEach(b => {
-      const el    = document.getElementById('blob-' + b.id);
-      const label = document.getElementById('label-' + b.id);
+    // Detectar qué blob está bajo el punto (x, y en coordenadas de viewport)
+    function blobAtPoint(x, y) {
+      // usamos elementFromPoint ignorando pointer-events con temporally hiding
+      const el = document.elementFromPoint(x, y);
+      if (el && el.classList.contains('blob-shape')) {
+        return BLOBS.find(b => b.id === el.id.replace('blob-', '')) || null;
+      }
+      return null;
+    }
 
-      el.addEventListener('mouseenter', () => showLabel(b.id));
-      el.addEventListener('mouseleave', () => label.classList.remove('visible'));
-      el.addEventListener('click', () => document.querySelector(el.dataset.section).scrollIntoView({ behavior: 'smooth' }));
+    function onMove(x, y) {
+      activateBlob(blobAtPoint(x, y));
+    }
 
-      el.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.blob-label').forEach(l => l.classList.remove('visible'));
-        showLabel(b.id);
-      }, { passive: false });
-      el.addEventListener('touchend', () => {
-        setTimeout(() => document.querySelector(el.dataset.section).scrollIntoView({ behavior: 'smooth' }), 250);
-      });
-    });
+    function onEnd() {
+      isDragging = false;
+      if (activeBlob) {
+        const section = document.getElementById('blob-' + activeBlob.id).dataset.section;
+        document.querySelector(section).scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => activateBlob(null), 600);
+      } else {
+        activateBlob(null);
+      }
+    }
+
+    // Mouse
+    const hero = document.getElementById('hero');
+    hero.addEventListener('mousedown', (e) => { isDragging = true; onMove(e.clientX, e.clientY); });
+    hero.addEventListener('mousemove', (e) => { if (isDragging) onMove(e.clientX, e.clientY); else onMove(e.clientX, e.clientY); });
+    hero.addEventListener('mouseleave', () => { if (!isDragging) activateBlob(null); });
+    hero.addEventListener('mouseup',   onEnd);
+
+    // Touch
+    hero.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      const t = e.touches[0];
+      onMove(t.clientX, t.clientY);
+    }, { passive: true });
+    hero.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      onMove(t.clientX, t.clientY);
+    }, { passive: true });
+    hero.addEventListener('touchend', onEnd);
 
     // ── Loop de animación ──
     function animLoop(ts) {
       BLOBS.forEach(b => {
         const t  = (ts / b.period) * Math.PI * 2 + b.phase;
-        const cx = b.baseCx + Math.sin(t)        * b.ampX;
-        const cy = b.baseCy + Math.cos(t * 1.37) * b.ampY;
-        const el = document.getElementById('blob-' + b.id);
-        el.setAttribute('cx', cx);
-        el.setAttribute('cy', cy);
+        const cx = b.baseCx + Math.sin(t)         * b.ampX;
+        const cy = b.baseCy + Math.cos(t * 1.37)  * b.ampY;
+        document.getElementById('blob-' + b.id).setAttribute('cx', cx);
+        document.getElementById('blob-' + b.id).setAttribute('cy', cy);
         blobState[b.id] = { cx, cy };
       });
       requestAnimationFrame(animLoop);
