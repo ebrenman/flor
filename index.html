@@ -573,20 +573,46 @@
     const colorLine = document.getElementById('colorLine');
 
     // ── Estado ──
-    let selectedBlob = null;   // blob seleccionado por tap
-    let frozen       = false;  // masa congelada
-    let animTs       = 0;      // timestamp congelado
+    let selectedBlob = null;
+    let frozen       = false;
+    let frozenTs     = 0;
+    let lastTouchEnd = 0; // para bloquear click post-touch
 
-    // ── Seleccionar blob ──
+    // Posiciones actuales de cada blob en coordenadas viewBox
+    const blobPos = {};
+    BLOBS.forEach(b => { blobPos[b.id] = { cx: b.baseCx, cy: b.baseCy }; });
+
+    // ── Convertir punto de viewport a coordenadas viewBox ──
+    function toViewBox(clientX, clientY) {
+      const r   = hero.getBoundingClientRect();
+      const vbW = 1000, vbH = 650;
+      return {
+        x: (clientX - r.left) / r.width  * vbW,
+        y: (clientY - r.top)  / r.height * vbH,
+      };
+    }
+
+    // ── Blob más cercano al punto (en viewBox coords) ──
+    const HIT_R = 230; // radio de hit en viewBox units
+    function closestBlob(clientX, clientY) {
+      const p = toViewBox(clientX, clientY);
+      let best = null, bestDist = HIT_R;
+      BLOBS.forEach(b => {
+        const pos  = blobPos[b.id];
+        const dist = Math.hypot(p.x - pos.cx, p.y - pos.cy);
+        if (dist < bestDist) { bestDist = dist; best = b; }
+      });
+      return best;
+    }
+
+    // ── Seleccionar / deseleccionar blob ──
     function selectBlob(b) {
-      // deseleccionar anterior
       document.querySelectorAll('.blob-shape').forEach(el => {
         el.classList.remove('active');
         el.style.filter = '';
       });
 
-      if (!b || (selectedBlob?.id === b?.id)) {
-        // toggle off
+      if (!b || selectedBlob?.id === b?.id) {
         selectedBlob = null;
         frozen = false;
         panel.classList.remove('visible');
@@ -597,75 +623,65 @@
 
       selectedBlob = b;
       frozen = true;
+      frozenTs = performance.now();
 
-      // Resaltar el seleccionado, oscurecer el resto
       BLOBS.forEach(other => {
         const el = document.getElementById('blob-' + other.id);
         if (other.id === b.id) {
           el.classList.add('active');
-          // traer al frente reinsertando al final del grupo
-          blobsGrp.appendChild(el);
+          blobsGrp.appendChild(el); // al frente
         } else {
-          el.style.filter = 'brightness(0.35) saturate(0.3)';
+          el.style.filter = 'brightness(0.3) saturate(0.2)';
         }
       });
 
-      // Actualizar panel
       const [l1, l2] = b.label.split('\n');
       secName.innerHTML  = l2 ? `${l1}<br>${l2}` : l1;
       secSub.textContent = b.sub;
       colorLine.style.background = b.color;
-      irBtn.style.background = b.color;
-      irBtn.style.color = 'white';
+      irBtn.style.background     = b.color;
+      irBtn.style.color          = 'white';
 
       panel.classList.add('visible');
       colorLine.classList.add('visible');
       hint.classList.add('hidden');
     }
 
-    // ── Detectar blob bajo el punto ──
-    function blobAtPoint(x, y) {
-      const el = document.elementFromPoint(x, y);
-      return (el && el.classList.contains('blob-shape'))
-        ? BLOBS.find(b => b.id === el.id.replace('blob-', '')) || null
-        : null;
-    }
-
-    // ── Tap / click ──
-    hero.addEventListener('click', (e) => {
-      if (e.target === irBtn) return; // lo maneja el botón
-      const b = blobAtPoint(e.clientX, e.clientY);
-      selectBlob(b);
-    });
-
+    // ── Touch — fuente de verdad en mobile ──
     hero.addEventListener('touchend', (e) => {
+      if (e.target === irBtn) return;
+      lastTouchEnd = Date.now();
       const t = e.changedTouches[0];
-      const b = blobAtPoint(t.clientX, t.clientY);
-      if (e.target !== irBtn) selectBlob(b);
+      selectBlob(closestBlob(t.clientX, t.clientY));
     }, { passive: true });
+
+    // ── Click — solo desktop (ignorar si viene de touch) ──
+    hero.addEventListener('click', (e) => {
+      if (Date.now() - lastTouchEnd < 500) return; // viene de touch, ignorar
+      if (e.target === irBtn) return;
+      selectBlob(closestBlob(e.clientX, e.clientY));
+    });
 
     // ── Botón IR ──
     irBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!selectedBlob) return;
-      const section = document.getElementById('blob-' + selectedBlob.id).dataset.section;
-      document.querySelector(section).scrollIntoView({ behavior: 'smooth' });
+      const sel = document.getElementById('blob-' + selectedBlob.id).dataset.section;
+      document.querySelector(sel).scrollIntoView({ behavior: 'smooth' });
       setTimeout(() => selectBlob(null), 500);
     });
 
     // ── Loop de animación ──
     function animLoop(ts) {
-      const t = frozen ? animTs : ts;
-      if (!frozen) animTs = ts;
-
+      const t = frozen ? frozenTs : ts;
       BLOBS.forEach(b => {
         const phase = (t / b.period) * Math.PI * 2 + b.phase;
         const cx = b.baseCx + Math.sin(phase)        * b.ampX;
         const cy = b.baseCy + Math.cos(phase * 1.37) * b.ampY;
         document.getElementById('blob-' + b.id).setAttribute('cx', cx);
         document.getElementById('blob-' + b.id).setAttribute('cy', cy);
+        blobPos[b.id] = { cx, cy };
       });
-
       requestAnimationFrame(animLoop);
     }
     requestAnimationFrame(animLoop);
