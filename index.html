@@ -104,34 +104,35 @@
     /* Hint abajo */
     .hero-hint {
       position: absolute;
-      bottom: 2.2rem; left: 2.5rem;
+      bottom: 2.2rem; left: 2.5rem; right: 2.5rem;
       z-index: 30;
       font-size: 0.72rem;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.6);
+      white-space: nowrap;
+      color: rgba(255,255,255,0.7);
       pointer-events: none;
-      transition: opacity 0.3s;
+      transition: opacity 0.25s, visibility 0.25s;
     }
-    .hero-hint.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+    .hero-hint.hidden { opacity: 0; visibility: hidden; }
 
-    /* Panel de sección seleccionada — abajo izquierda */
+    /* Panel de sección seleccionada — abajo */
     .hero-panel {
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      z-index: 30;
+      z-index: 50;           /* siempre encima de todo */
       padding: 2rem 2.5rem;
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
+      visibility: hidden;
       opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
       pointer-events: none;
     }
     .hero-panel.visible {
+      visibility: visible;
       opacity: 1;
-      transform: translateY(0);
       pointer-events: auto;
     }
     .hero-panel-text .sec-name {
@@ -409,8 +410,8 @@
       </g>
     </svg>
 
-    <!-- Overlay invisible que captura TODOS los eventos por encima del SVG -->
-    <div id="heroOverlay" style="position:absolute;inset:0;z-index:15;touch-action:none;"></div>
+    <!-- Overlay invisible — solo cubre la zona de los blobs, no el panel inferior -->
+    <div id="heroOverlay" style="position:absolute;top:0;left:0;right:0;bottom:120px;z-index:15;touch-action:none;"></div>
 
     <div class="hero-hint" id="heroHint">tocá para explorar</div>
 
