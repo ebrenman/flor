@@ -101,52 +101,79 @@
       filter: brightness(1.05) saturate(1.15);
     }
 
-    /* Barra inferior — UN solo elemento */
-    .hero-bottom {
+    /* Hint abajo */
+    .hero-hint {
       position: absolute;
-      bottom: 2rem; left: 2.5rem;
+      bottom: 2.2rem; left: 2.5rem;
       z-index: 20;
-      pointer-events: none;
-    }
-
-    /* Estado idle: muestra el hint */
-    .hero-bottom .sec-hint {
       font-size: 0.72rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.62);
-      transition: opacity 0.25s ease;
+      color: rgba(255,255,255,0.6);
+      pointer-events: none;
+      transition: opacity 0.3s;
     }
-    /* Estado activo: muestra nombre de sección */
-    .hero-bottom .sec-name {
+    .hero-hint.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+    /* Panel de sección seleccionada — abajo izquierda */
+    .hero-panel {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      z-index: 25;
+      padding: 2rem 2.5rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+    }
+    .hero-panel.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .hero-panel-text .sec-name {
       font-family: 'DM Serif Display', serif;
-      font-size: clamp(1.6rem, 5vw, 2.6rem);
+      font-size: clamp(1.6rem, 5vw, 2.8rem);
       color: white;
       line-height: 1.1;
-      display: none;
+      display: block;
     }
-    .hero-bottom .sec-sub {
+    .hero-panel-text .sec-sub {
       font-size: 0.68rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: rgba(255,255,255,0.5);
-      margin-top: 0.3rem;
-      display: none;
+      display: block;
+      margin-top: 0.4rem;
     }
-    /* Cuando hay sección activa */
-    .hero-bottom.has-section .sec-hint { display: none; }
-    .hero-bottom.has-section .sec-name,
-    .hero-bottom.has-section .sec-sub  { display: block; }
+    .hero-ir {
+      flex-shrink: 0;
+      margin-left: 1.5rem;
+      background: white;
+      color: #111;
+      border: none;
+      border-radius: 100px;
+      padding: 0.8rem 1.8rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .hero-ir:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(255,255,255,0.2); }
 
     /* Línea de color abajo */
     .hero-color-line {
       position: absolute;
       bottom: 0; left: 0; right: 0;
       height: 3px;
-      background: white;
       transform: scaleX(0);
       transform-origin: left;
-      transition: transform 0.35s ease, background 0.3s ease;
+      transition: transform 0.4s ease, background 0.3s ease;
     }
     .hero-color-line.visible { transform: scaleX(1); }
 
@@ -382,12 +409,16 @@
       </g>
     </svg>
 
-    <!-- Barra inferior: UN elemento, dos estados -->
-    <div class="hero-bottom" id="heroBottom">
-      <div class="sec-hint">arrastrá para explorar</div>
-      <div class="sec-name" id="secName"></div>
-      <div class="sec-sub"  id="secSub"></div>
+    <div class="hero-hint" id="heroHint">tocá para explorar</div>
+
+    <div class="hero-panel" id="heroPanel">
+      <div class="hero-panel-text">
+        <span class="sec-name" id="secName"></span>
+        <span class="sec-sub"  id="secSub"></span>
+      </div>
+      <button class="hero-ir" id="heroIr">IR →</button>
     </div>
+
     <div class="hero-color-line" id="colorLine"></div>
   </section>
 
@@ -534,38 +565,65 @@
     // ── UI refs ──
     const hero      = document.getElementById('hero');
     const blobsGrp  = document.getElementById('blobs-group');
-    const bottom    = document.getElementById('heroBottom');
+    const hint      = document.getElementById('heroHint');
+    const panel     = document.getElementById('heroPanel');
     const secName   = document.getElementById('secName');
     const secSub    = document.getElementById('secSub');
+    const irBtn     = document.getElementById('heroIr');
     const colorLine = document.getElementById('colorLine');
 
-    // ── Estado de seguimiento ──
-    let activeBlob  = null;
-    let pointerX    = 0, pointerY = 0;   // posición objetivo (viewport)
-    let currentOffX = 0, currentOffY = 0; // offset actual del grupo (interpolado)
-    const FOLLOW    = 0.06;  // factor de lerp — más bajo = más lento/suave
-    const MAX_SHIFT = 80;    // máximo desplazamiento en px del viewBox
+    // ── Estado ──
+    let selectedBlob = null;   // blob seleccionado por tap
+    let frozen       = false;  // masa congelada
+    let animTs       = 0;      // timestamp congelado
 
-    // ── Activar sección ──
-    function activateBlob(b) {
-      if (activeBlob?.id === b?.id) return;
-      if (activeBlob) document.getElementById('blob-' + activeBlob.id).classList.remove('active');
-      activeBlob = b;
-      if (!b) {
-        bottom.classList.remove('has-section');
+    // ── Seleccionar blob ──
+    function selectBlob(b) {
+      // deseleccionar anterior
+      document.querySelectorAll('.blob-shape').forEach(el => {
+        el.classList.remove('active');
+        el.style.filter = '';
+      });
+
+      if (!b || (selectedBlob?.id === b?.id)) {
+        // toggle off
+        selectedBlob = null;
+        frozen = false;
+        panel.classList.remove('visible');
         colorLine.classList.remove('visible');
+        hint.classList.remove('hidden');
         return;
       }
-      document.getElementById('blob-' + b.id).classList.add('active');
+
+      selectedBlob = b;
+      frozen = true;
+
+      // Resaltar el seleccionado, oscurecer el resto
+      BLOBS.forEach(other => {
+        const el = document.getElementById('blob-' + other.id);
+        if (other.id === b.id) {
+          el.classList.add('active');
+          // traer al frente reinsertando al final del grupo
+          blobsGrp.appendChild(el);
+        } else {
+          el.style.filter = 'brightness(0.35) saturate(0.3)';
+        }
+      });
+
+      // Actualizar panel
       const [l1, l2] = b.label.split('\n');
       secName.innerHTML  = l2 ? `${l1}<br>${l2}` : l1;
       secSub.textContent = b.sub;
       colorLine.style.background = b.color;
-      bottom.classList.add('has-section');
+      irBtn.style.background = b.color;
+      irBtn.style.color = 'white';
+
+      panel.classList.add('visible');
       colorLine.classList.add('visible');
+      hint.classList.add('hidden');
     }
 
-    // ── Detectar blob bajo el puntero ──
+    // ── Detectar blob bajo el punto ──
     function blobAtPoint(x, y) {
       const el = document.elementFromPoint(x, y);
       return (el && el.classList.contains('blob-shape'))
@@ -573,83 +631,43 @@
         : null;
     }
 
-    // ── Handlers de pointer ──
-    let touching = false;
-    let tapTarget = null;
+    // ── Tap / click ──
+    hero.addEventListener('click', (e) => {
+      if (e.target === irBtn) return; // lo maneja el botón
+      const b = blobAtPoint(e.clientX, e.clientY);
+      selectBlob(b);
+    });
 
-    function handleMove(x, y) {
-      pointerX = x;
-      pointerY = y;
-      activateBlob(blobAtPoint(x, y));
-    }
-
-    function handleEnd() {
-      if (activeBlob) {
-        const section = document.getElementById('blob-' + activeBlob.id).dataset.section;
-        document.querySelector(section).scrollIntoView({ behavior: 'smooth' });
-        setTimeout(() => activateBlob(null), 700);
-      } else {
-        activateBlob(null);
-      }
-    }
-
-    // Mouse
-    hero.addEventListener('mousemove',  (e) => handleMove(e.clientX, e.clientY));
-    hero.addEventListener('mouseleave', ()  => activateBlob(null));
-    hero.addEventListener('mouseup',    ()  => handleEnd());
-
-    // Touch — prevenimos scroll solo dentro del hero mientras se arrastra
-    hero.addEventListener('touchstart', (e) => {
-      touching = true;
-      const t = e.touches[0];
-      pointerX = t.clientX; pointerY = t.clientY;
-      handleMove(t.clientX, t.clientY);
+    hero.addEventListener('touchend', (e) => {
+      const t = e.changedTouches[0];
+      const b = blobAtPoint(t.clientX, t.clientY);
+      if (e.target !== irBtn) selectBlob(b);
     }, { passive: true });
 
-    hero.addEventListener('touchmove', (e) => {
-      e.preventDefault(); // evita scroll accidental mientras explorás
-      const t = e.touches[0];
-      handleMove(t.clientX, t.clientY);
-    }, { passive: false });
-
-    hero.addEventListener('touchend', () => {
-      touching = false;
-      handleEnd();
+    // ── Botón IR ──
+    irBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!selectedBlob) return;
+      const section = document.getElementById('blob-' + selectedBlob.id).dataset.section;
+      document.querySelector(section).scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => selectBlob(null), 500);
     });
 
     // ── Loop de animación ──
-    // Centro del hero en viewport
-    function heroCenter() {
-      const r = hero.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-    }
-
     function animLoop(ts) {
-      // 1. Animar posiciones base de cada blob (float)
+      const t = frozen ? animTs : ts;
+      if (!frozen) animTs = ts;
+
       BLOBS.forEach(b => {
-        const t  = (ts / b.period) * Math.PI * 2 + b.phase;
-        const cx = b.baseCx + Math.sin(t)        * b.ampX;
-        const cy = b.baseCy + Math.cos(t * 1.37) * b.ampY;
+        const phase = (t / b.period) * Math.PI * 2 + b.phase;
+        const cx = b.baseCx + Math.sin(phase)        * b.ampX;
+        const cy = b.baseCy + Math.cos(phase * 1.37) * b.ampY;
         document.getElementById('blob-' + b.id).setAttribute('cx', cx);
         document.getElementById('blob-' + b.id).setAttribute('cy', cy);
       });
 
-      // 2. Seguir al puntero — desplazar el grupo completo con lerp
-      const c   = heroCenter();
-      // offset objetivo: puntero relativo al centro, escalado
-      const r   = hero.getBoundingClientRect();
-      const tx  = ((pointerX - c.x) / r.width)  * MAX_SHIFT;
-      const ty  = ((pointerY - c.y) / r.height) * MAX_SHIFT;
-      currentOffX += (tx - currentOffX) * FOLLOW;
-      currentOffY += (ty - currentOffY) * FOLLOW;
-      blobsGrp.style.transform = `translate(${currentOffX}px, ${currentOffY}px)`;
-
       requestAnimationFrame(animLoop);
     }
-    // Inicializar puntero en el centro para que no arranque desplazado
-    const initR = hero.getBoundingClientRect();
-    pointerX = initR.left + initR.width  / 2;
-    pointerY = initR.top  + initR.height / 2;
     requestAnimationFrame(animLoop);
 
     // ── Reveal on scroll ──
