@@ -101,60 +101,44 @@
       filter: brightness(1.05) saturate(1.15);
     }
 
-    /* Barra inferior de la hero */
+    /* Barra inferior — UN solo elemento */
     .hero-bottom {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
+      bottom: 2rem; left: 2.5rem;
       z-index: 20;
-      padding: 2rem 2.5rem;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
       pointer-events: none;
     }
 
-    .hero-hint {
-      font-size: 0.7rem;
+    /* Estado idle: muestra el hint */
+    .hero-bottom .sec-hint {
+      font-size: 0.72rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.22);
-      transition: opacity 0.4s;
+      color: rgba(255,255,255,0.62);
+      transition: opacity 0.25s ease;
     }
-    .hero-hint.hidden { opacity: 0; }
-
-    /* Nombre de sección que aparece al arrastrar */
-    .hero-section-reveal {
-      text-align: right;
-      pointer-events: none;
-    }
-    .hero-section-reveal .sec-name {
+    /* Estado activo: muestra nombre de sección */
+    .hero-bottom .sec-name {
       font-family: 'DM Serif Display', serif;
-      font-size: clamp(1.4rem, 4vw, 2.4rem);
+      font-size: clamp(1.6rem, 5vw, 2.6rem);
       color: white;
       line-height: 1.1;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 0.25s ease, transform 0.25s ease, color 0.3s ease;
-      display: block;
+      display: none;
     }
-    .hero-section-reveal .sec-sub {
-      font-size: 0.7rem;
+    .hero-bottom .sec-sub {
+      font-size: 0.68rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.45);
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.25s ease 0.05s, transform 0.25s ease 0.05s;
-      display: block;
+      color: rgba(255,255,255,0.5);
       margin-top: 0.3rem;
+      display: none;
     }
-    .hero-section-reveal.visible .sec-name,
-    .hero-section-reveal.visible .sec-sub {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    /* Cuando hay sección activa */
+    .hero-bottom.has-section .sec-hint { display: none; }
+    .hero-bottom.has-section .sec-name,
+    .hero-bottom.has-section .sec-sub  { display: block; }
 
-    /* Línea de color que cambia */
+    /* Línea de color abajo */
     .hero-color-line {
       position: absolute;
       bottom: 0; left: 0; right: 0;
@@ -398,13 +382,11 @@
       </g>
     </svg>
 
-    <!-- Barra inferior -->
-    <div class="hero-bottom">
-      <div class="hero-hint" id="heroHint">arrastrá para explorar</div>
-      <div class="hero-section-reveal" id="sectionReveal">
-        <span class="sec-name" id="secName"></span>
-        <span class="sec-sub"  id="secSub"></span>
-      </div>
+    <!-- Barra inferior: UN elemento, dos estados -->
+    <div class="hero-bottom" id="heroBottom">
+      <div class="sec-hint">arrastrá para explorar</div>
+      <div class="sec-name" id="secName"></div>
+      <div class="sec-sub"  id="secSub"></div>
     </div>
     <div class="hero-color-line" id="colorLine"></div>
   </section>
@@ -542,103 +524,132 @@
 
     // ── Config de cada blob ──
     const BLOBS = [
-      { id: 'democracia',   baseCx: 420, baseCy: 280, ampX: 55, ampY: 45, period: 7200,  phase: 0.0, color: '#7B4FBE', label: 'Democracia\n& Política',    sub: 'innovación · legislatura · CABA' },
-      { id: 'agroecologia', baseCx: 300, baseCy: 420, ampX: 45, ampY: 55, period: 9100,  phase: 1.1, color: '#4A7C59', label: 'Agroecología\n& Tierra',      sub: 'cooperativa · permacultura' },
-      { id: 'educacion',    baseCx: 560, baseCy: 230, ampX: 50, ampY: 40, period: 8300,  phase: 2.3, color: '#D4723A', label: 'Educación\n& Mentoría',       sub: 'docencia · liderazgo · Ashoka' },
-      { id: 'cultura',      baseCx: 650, baseCy: 400, ampX: 40, ampY: 55, period: 10200, phase: 3.7, color: '#C94F7B', label: 'Cultura\n& Arte',              sub: 'TEDx · teatro · arte' },
-      { id: 'comunicacion', baseCx: 450, baseCy: 470, ampX: 55, ampY: 40, period: 7800,  phase: 5.0, color: '#3A6EA5', label: 'Comunicación',                 sub: 'periodismo · ONU · BID' },
+      { id: 'democracia',   baseCx: 420, baseCy: 280, ampX: 55, ampY: 45, period: 7200,  phase: 0.0, color: '#7B4FBE', label: 'Democracia\n& Política',  sub: 'innovación · legislatura · CABA' },
+      { id: 'agroecologia', baseCx: 300, baseCy: 420, ampX: 45, ampY: 55, period: 9100,  phase: 1.1, color: '#4A7C59', label: 'Agroecología\n& Tierra',    sub: 'cooperativa · permacultura' },
+      { id: 'educacion',    baseCx: 560, baseCy: 230, ampX: 50, ampY: 40, period: 8300,  phase: 2.3, color: '#D4723A', label: 'Educación\n& Mentoría',     sub: 'docencia · liderazgo · Ashoka' },
+      { id: 'cultura',      baseCx: 650, baseCy: 400, ampX: 40, ampY: 55, period: 10200, phase: 3.7, color: '#C94F7B', label: 'Cultura\n& Arte',            sub: 'TEDx · teatro · arte' },
+      { id: 'comunicacion', baseCx: 450, baseCy: 470, ampX: 55, ampY: 40, period: 7800,  phase: 5.0, color: '#3A6EA5', label: 'Comunicación',               sub: 'periodismo · ONU · BID' },
     ];
 
-    const blobState = {};
-    BLOBS.forEach(b => { blobState[b.id] = { cx: b.baseCx, cy: b.baseCy }; });
-
     // ── UI refs ──
-    const hint        = document.getElementById('heroHint');
-    const reveal      = document.getElementById('sectionReveal');
-    const secName     = document.getElementById('secName');
-    const secSub      = document.getElementById('secSub');
-    const colorLine   = document.getElementById('colorLine');
+    const hero      = document.getElementById('hero');
+    const blobsGrp  = document.getElementById('blobs-group');
+    const bottom    = document.getElementById('heroBottom');
+    const secName   = document.getElementById('secName');
+    const secSub    = document.getElementById('secSub');
+    const colorLine = document.getElementById('colorLine');
 
-    let activeBlob    = null;
-    let isDragging    = false;
+    // ── Estado de seguimiento ──
+    let activeBlob  = null;
+    let pointerX    = 0, pointerY = 0;   // posición objetivo (viewport)
+    let currentOffX = 0, currentOffY = 0; // offset actual del grupo (interpolado)
+    const FOLLOW    = 0.06;  // factor de lerp — más bajo = más lento/suave
+    const MAX_SHIFT = 80;    // máximo desplazamiento en px del viewBox
 
+    // ── Activar sección ──
     function activateBlob(b) {
       if (activeBlob?.id === b?.id) return;
-      // desactivar anterior
       if (activeBlob) document.getElementById('blob-' + activeBlob.id).classList.remove('active');
       activeBlob = b;
       if (!b) {
-        reveal.classList.remove('visible');
+        bottom.classList.remove('has-section');
         colorLine.classList.remove('visible');
-        hint.classList.remove('hidden');
         return;
       }
       document.getElementById('blob-' + b.id).classList.add('active');
-      const [line1, line2] = b.label.split('\n');
-      secName.innerHTML   = line2 ? `${line1}<br>${line2}` : line1;
-      secSub.textContent  = b.sub;
+      const [l1, l2] = b.label.split('\n');
+      secName.innerHTML  = l2 ? `${l1}<br>${l2}` : l1;
+      secSub.textContent = b.sub;
       colorLine.style.background = b.color;
-      reveal.classList.add('visible');
+      bottom.classList.add('has-section');
       colorLine.classList.add('visible');
-      hint.classList.add('hidden');
     }
 
-    // Detectar qué blob está bajo el punto (x, y en coordenadas de viewport)
+    // ── Detectar blob bajo el puntero ──
     function blobAtPoint(x, y) {
-      // usamos elementFromPoint ignorando pointer-events con temporally hiding
       const el = document.elementFromPoint(x, y);
-      if (el && el.classList.contains('blob-shape')) {
-        return BLOBS.find(b => b.id === el.id.replace('blob-', '')) || null;
-      }
-      return null;
+      return (el && el.classList.contains('blob-shape'))
+        ? BLOBS.find(b => b.id === el.id.replace('blob-', '')) || null
+        : null;
     }
 
-    function onMove(x, y) {
+    // ── Handlers de pointer ──
+    let touching = false;
+    let tapTarget = null;
+
+    function handleMove(x, y) {
+      pointerX = x;
+      pointerY = y;
       activateBlob(blobAtPoint(x, y));
     }
 
-    function onEnd() {
-      isDragging = false;
+    function handleEnd() {
       if (activeBlob) {
         const section = document.getElementById('blob-' + activeBlob.id).dataset.section;
         document.querySelector(section).scrollIntoView({ behavior: 'smooth' });
-        setTimeout(() => activateBlob(null), 600);
+        setTimeout(() => activateBlob(null), 700);
       } else {
         activateBlob(null);
       }
     }
 
     // Mouse
-    const hero = document.getElementById('hero');
-    hero.addEventListener('mousedown', (e) => { isDragging = true; onMove(e.clientX, e.clientY); });
-    hero.addEventListener('mousemove', (e) => { if (isDragging) onMove(e.clientX, e.clientY); else onMove(e.clientX, e.clientY); });
-    hero.addEventListener('mouseleave', () => { if (!isDragging) activateBlob(null); });
-    hero.addEventListener('mouseup',   onEnd);
+    hero.addEventListener('mousemove',  (e) => handleMove(e.clientX, e.clientY));
+    hero.addEventListener('mouseleave', ()  => activateBlob(null));
+    hero.addEventListener('mouseup',    ()  => handleEnd());
 
-    // Touch
+    // Touch — prevenimos scroll solo dentro del hero mientras se arrastra
     hero.addEventListener('touchstart', (e) => {
-      isDragging = true;
+      touching = true;
       const t = e.touches[0];
-      onMove(t.clientX, t.clientY);
+      pointerX = t.clientX; pointerY = t.clientY;
+      handleMove(t.clientX, t.clientY);
     }, { passive: true });
+
     hero.addEventListener('touchmove', (e) => {
+      e.preventDefault(); // evita scroll accidental mientras explorás
       const t = e.touches[0];
-      onMove(t.clientX, t.clientY);
-    }, { passive: true });
-    hero.addEventListener('touchend', onEnd);
+      handleMove(t.clientX, t.clientY);
+    }, { passive: false });
+
+    hero.addEventListener('touchend', () => {
+      touching = false;
+      handleEnd();
+    });
 
     // ── Loop de animación ──
+    // Centro del hero en viewport
+    function heroCenter() {
+      const r = hero.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+
     function animLoop(ts) {
+      // 1. Animar posiciones base de cada blob (float)
       BLOBS.forEach(b => {
         const t  = (ts / b.period) * Math.PI * 2 + b.phase;
-        const cx = b.baseCx + Math.sin(t)         * b.ampX;
-        const cy = b.baseCy + Math.cos(t * 1.37)  * b.ampY;
+        const cx = b.baseCx + Math.sin(t)        * b.ampX;
+        const cy = b.baseCy + Math.cos(t * 1.37) * b.ampY;
         document.getElementById('blob-' + b.id).setAttribute('cx', cx);
         document.getElementById('blob-' + b.id).setAttribute('cy', cy);
-        blobState[b.id] = { cx, cy };
       });
+
+      // 2. Seguir al puntero — desplazar el grupo completo con lerp
+      const c   = heroCenter();
+      // offset objetivo: puntero relativo al centro, escalado
+      const r   = hero.getBoundingClientRect();
+      const tx  = ((pointerX - c.x) / r.width)  * MAX_SHIFT;
+      const ty  = ((pointerY - c.y) / r.height) * MAX_SHIFT;
+      currentOffX += (tx - currentOffX) * FOLLOW;
+      currentOffY += (ty - currentOffY) * FOLLOW;
+      blobsGrp.style.transform = `translate(${currentOffX}px, ${currentOffY}px)`;
+
       requestAnimationFrame(animLoop);
     }
+    // Inicializar puntero en el centro para que no arranque desplazado
+    const initR = hero.getBoundingClientRect();
+    pointerX = initR.left + initR.width  / 2;
+    pointerY = initR.top  + initR.height / 2;
     requestAnimationFrame(animLoop);
 
     // ── Reveal on scroll ──
