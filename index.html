@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Florencia Polimeni</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #F4EFE6;
+      --violeta: #7B4FBE;
+      --violeta-dark: #5A3490;
+      --verde: #3D6B4A;
+      --naranja: #D4723A;
+      --rosa: #C94F7B;
+      --azul: #3A6EA5;
+      --dark: #111114;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--cream);
+      color: var(--dark);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      overflow-x: hidden;
+    }
+
+    /* ─── HERO ─── */
+    #hero {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: var(--dark);
+      overflow: hidden;
+      cursor: default;
+    }
+
+    /* Nombre arriba a la derecha */
+    .hero-name {
+      position: absolute;
+      top: 2rem;
+      right: 2.5rem;
+      z-index: 20;
+      text-align: right;
+      pointer-events: none;
+    }
+    .hero-name h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.3rem, 2.5vw, 2rem);
+      color: rgba(255,255,255,0.92);
+      letter-spacing: 0.02em;
+      line-height: 1.15;
+    }
+    .hero-name p {
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-top: 0.3rem;
+    }
+
+    /* Hint texto */
+    .hero-hint {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.2);
+      animation: pulse-hint 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-hint {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* SVG canvas de blobs */
+    #blob-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Cada blob */
+    .blob-shape {
+      cursor: pointer;
+      transition: filter 0.4s ease;
+      filter: brightness(0.7) saturate(0.6);
+    }
+    .blob-shape:hover,
+    .blob-shape.active {
+      filter: brightness(1) saturate(1.1);
+    }
+
+    /* Label que aparece al hover */
+    .blob-label {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      transform: translateY(6px);
+      text-align: center;
+    }
+    .blob-label.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .blob-label-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.1rem, 2.5vw, 1.8rem);
+      color: white;
+      line-height: 1.2;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+    }
+    .blob-label-sub {
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      margin-top: 0.3rem;
+    }
+
+    /* Nav — aparece al bajar del hero */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 1.2rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(244,239,230,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      transform: translateY(-100%);
+      transition: transform 0.4s ease;
+    }
+    nav.visible { transform: translateY(0); }
+    nav .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1rem;
+      color: var(--dark);
+      text-decoration: none;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2rem;
+    }
+    nav ul a {
+      text-decoration: none;
+      color: var(--dark);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      transition: opacity 0.2s;
+    }
+    nav ul a:hover { opacity: 1; }
+    @media (max-width: 600px) { nav ul { display: none; } }
+
+    /* ─── SECCIONES ─── */
+    .section {
+      position: relative;
+      padding: 8rem 5vw;
+      overflow: hidden;
+    }
+    .section-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+    .section-tag .line {
+      display: inline-block;
+      width: 24px;
+      height: 1.5px;
+      background: currentColor;
+    }
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.5rem, 4.5vw, 4rem);
+      line-height: 1.08;
+      margin-bottom: 1.5rem;
+    }
+    .section-body {
+      font-size: 1.05rem;
+      line-height: 1.78;
+      max-width: 600px;
+      opacity: 0.75;
+    }
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      margin-top: 4rem;
+      align-items: start;
+    }
+    @media (max-width: 768px) { .section-grid { grid-template-columns: 1fr; gap: 2rem; } }
+
+    .item-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .item-list li {
+      padding: 1.2rem 1.5rem;
+      background: rgba(255,255,255,0.55);
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      backdrop-filter: blur(4px);
+    }
+    .item-list li strong { display: block; font-weight: 500; margin-bottom: 0.2rem; }
+    .item-list li span { opacity: 0.55; font-size: 0.85rem; }
+    .project-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+    .project-tag {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.65rem;
+      border-radius: 100px;
+      background: rgba(255,255,255,0.75);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .quote-block {
+      padding: 2.5rem;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(8px);
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.3rem;
+      font-style: italic;
+      line-height: 1.55;
+    }
+
+    .blob-bg-deco {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0.13;
+    }
+
+    /* Sección colores */
+    #democracia  { background: #EDE5F8; }
+    #democracia  .section-tag, #democracia  .section-title { color: var(--violeta-dark); }
+    #agroecologia { background: #DFF0E6; }
+    #agroecologia .section-tag, #agroecologia .section-title { color: var(--verde); }
+    #educacion   { background: #F8EDDF; }
+    #educacion   .section-tag, #educacion   .section-title { color: var(--naranja); }
+    #cultura     { background: #F5E4EF; }
+    #cultura     .section-tag, #cultura     .section-title { color: var(--rosa); }
+    #comunicacion{ background: #E2EBF6; }
+    #comunicacion .section-tag, #comunicacion .section-title { color: var(--azul); }
+
+    /* CONTACTO */
+    #contacto {
+      background: var(--dark);
+      padding: 8rem 5vw;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    #contacto .section-title { color: var(--cream); font-family: 'DM Serif Display', serif; font-size: clamp(2.5rem, 4vw, 4rem); margin-bottom: 1rem; }
+    #contacto p { color: rgba(255,255,255,0.45); font-size: 1rem; margin-bottom: 3rem; }
+    .contact-links { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .contact-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.8rem;
+      border-radius: 100px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .contact-link.primary { background: var(--cream); color: var(--dark); }
+    .contact-link.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,255,255,0.12); }
+    .contact-link.secondary { border: 1.5px solid rgba(255,255,255,0.25); color: white; }
+    .contact-link.secondary:hover { border-color: white; background: rgba(255,255,255,0.08); }
+
+    footer {
+      background: var(--dark);
+      padding: 1.8rem 5vw;
+      text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    footer p { color: rgba(255,255,255,0.25); font-size: 0.78rem; }
+
+    /* Scroll animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <a class="logo" href="#hero">Florencia Polimeni</a>
+    <ul>
+      <li><a href="#democracia">Política</a></li>
+      <li><a href="#agroecologia">Tierra</a></li>
+      <li><a href="#educacion">Educación</a></li>
+      <li><a href="#cultura">Cultura</a></li>
+      <li><a href="#contacto">Contacto</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO INTERACTIVO -->
+  <section id="hero">
+
+    <!-- Nombre fantasma al centro -->
+    <div class="hero-name" id="heroName">
+      <h1>Florencia<br>Polimeni</h1>
+      <p>activista · docente · constructora</p>
+    </div>
+
+    <!-- SVG blobs — todos del mismo tamaño, en cluster central conectado -->
+    <svg id="blob-canvas" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="goo" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -11" result="goo"/>
+        </filter>
+      </defs>
+      <g id="blobs-group" filter="url(#goo)">
+        <!-- Cada ellipse se mueve vía JS. rx/ry ligeramente distintos para organicidad -->
+        <ellipse id="blob-democracia"   class="blob-shape" fill="#7B4FBE" cx="420" cy="280" rx="195" ry="210"
+          data-section="#democracia" data-label="Democracia &amp; Política" data-sub="innovación · legislatura"/>
+        <ellipse id="blob-agroecologia" class="blob-shape" fill="#4A7C59" cx="300" cy="420" rx="200" ry="185"
+          data-section="#agroecologia" data-label="Agroecología &amp; Tierra" data-sub="cooperativa · permacultura"/>
+        <ellipse id="blob-educacion"    class="blob-shape" fill="#D4723A" cx="560" cy="230" rx="185" ry="200"
+          data-section="#educacion"    data-label="Educación &amp; Mentoría" data-sub="docencia · liderazgo"/>
+        <ellipse id="blob-cultura"      class="blob-shape" fill="#C94F7B" cx="650" cy="400" rx="190" ry="195"
+          data-section="#cultura"      data-label="Cultura &amp; Arte" data-sub="TEDx · teatro · arte"/>
+        <ellipse id="blob-comunicacion" class="blob-shape" fill="#3A6EA5" cx="450" cy="470" rx="200" ry="185"
+          data-section="#comunicacion" data-label="Comunicación" data-sub="periodismo · ONU · BID"/>
+      </g>
+    </svg>
+
+    <!-- Labels flotantes — JS los posiciona sobre cada blob -->
+    <div id="label-democracia"   class="blob-label"><div class="blob-label-title">Democracia<br>&amp; Política</div><div class="blob-label-sub">innovación · legislatura</div></div>
+    <div id="label-agroecologia" class="blob-label"><div class="blob-label-title">Agroecología<br>&amp; Tierra</div><div class="blob-label-sub">cooperativa · permacultura</div></div>
+    <div id="label-educacion"    class="blob-label"><div class="blob-label-title">Educación<br>&amp; Mentoría</div><div class="blob-label-sub">docencia · liderazgo</div></div>
+    <div id="label-cultura"      class="blob-label"><div class="blob-label-title">Cultura<br>&amp; Arte</div><div class="blob-label-sub">TEDx · teatro · arte</div></div>
+    <div id="label-comunicacion" class="blob-label"><div class="blob-label-title">Comunicación</div><div class="blob-label-sub">periodismo · ONU · BID</div></div>
+
+    <div class="hero-hint">tocá para explorar</div>
+  </section>
+
+  <!-- ─── SECCIÓN DEMOCRACIA ─── -->
+  <section class="section" id="democracia">
+    <svg class="blob-bg-deco" style="right:-80px;top:-60px;width:480px;" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <path d="M200,40 C280,20 360,90 380,180 C400,270 355,360 270,385 C185,410 90,370 50,280 C10,190 45,80 130,48 C155,38 178,47 200,40Z" fill="#7B4FBE"/>
+    </svg>
+    <div class="section-inner">
+      <div class="section-tag reveal"><span class="line"></span>Democracia &amp; Política</div>
+      <h2 class="section-title reveal">Construyendo<br>democracia viva</h2>
+      <p class="section-body reveal">Legisladora, fundadora y red-builder. Desde la Legislatura porteña hasta América Latina, Florencia trabaja para que la democracia sea una práctica cotidiana, no solo un sistema de gobierno.</p>
+      <div class="section-grid">
+        <ul class="item-list">
+          <li class="reveal"><strong>Fundación Democracia en Red</strong><span>2009 – presente</span><div class="project-tags"><span class="project-tag">innovación cívica</span><span class="project-tag">participación</span></div></li>
+          <li class="reveal"><strong>Legisladora — CABA</strong><span>2003–2007</span><div class="project-tags"><span class="project-tag">autora de la ESI</span><span class="project-tag">educación</span><span class="project-tag">cultura</span></div></li>
+          <li class="reveal"><strong>Red de Innovación Política (RINP)</strong><span>América Latina · miembra fundadora</span></li>
+        </ul>
+        <div class="quote-block reveal" style="border-left:3px solid var(--violeta);">"La ESI no fue solo una ley — fue un acto de amor hacia las infancias."</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SECCIÓN AGROECOLOGÍA ─── -->
+  <section class="section" id="agroecologia">
+    <svg class="blob-bg-deco" style="left:-100px;bottom:-40px;width:500px;" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <path d="M210,35 C300,15 385,95 390,190 C395,285 335,375 240,390 C145,405 55,345 35,245 C15,145 70,45 160,30 C178,27 195,38 210,35Z" fill="#4A7C59"/>
+    </svg>
+    <div class="section-inner">
+      <div class="section-tag reveal"><span class="line"></span>Agroecología &amp; Tierra</div>
+      <h2 class="section-title reveal">La tierra<br>como política</h2>
+      <p class="section-body reveal">Diplomada en permacultura y agricultura orgánica. Florencia co-creó la Cooperativa Las Consentidas y milita junto a los Pueblos Fumigados de la Provincia de Buenos Aires.</p>
+      <div class="section-grid">
+        <ul class="item-list">
+          <li class="reveal"><strong>Cooperativa Las Consentidas</strong><span>Producción agroecológica y educación en ruralidad</span><div class="project-tags"><span class="project-tag">fundadora</span><span class="project-tag">permacultura</span></div></li>
+          <li class="reveal"><strong>Red de Pueblos Fumigados PBA</strong><span>Amparista y militante</span><div class="project-tags"><span class="project-tag">derecho ambiental</span></div></li>
+          <li class="reveal"><strong>Diplomatura en Permacultura</strong><span>Escuela El Árbol, Córdoba · 2022</span></li>
+          <li class="reveal"><strong>Diplomatura en Agricultura Orgánica</strong><span>Lobos · Jairo Restrepo · 2023</span></li>
+        </ul>
+        <div class="quote-block reveal" style="border-left:3px solid var(--verde);">"No hay justicia social sin justicia ambiental. La tierra no miente."</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SECCIÓN EDUCACIÓN ─── -->
+  <section class="section" id="educacion">
+    <svg class="blob-bg-deco" style="right:-60px;top:-80px;width:460px;" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <path d="M195,30 C285,8 380,90 392,185 C404,280 345,370 250,388 C155,406 60,345 40,248 C20,151 75,50 165,28 C175,25 186,32 195,30Z" fill="#D4723A"/>
+    </svg>
+    <div class="section-inner">
+      <div class="section-tag reveal"><span class="line"></span>Educación &amp; Mentoría</div>
+      <h2 class="section-title reveal">Encender<br>la pregunta</h2>
+      <p class="section-body reveal">Docente universitaria, mentora de líderes y profesora invitada en Ashoka. Cree que la educación es el acto político más radical.</p>
+      <div class="section-grid">
+        <ul class="item-list">
+          <li class="reveal"><strong>Profesora Invitada — Ashoka</strong><span>2024</span></li>
+          <li class="reveal"><strong>Docente — UNSAM Posgrado</strong><span>Comunicación y resolución de conflictos · 2014–2015</span></li>
+          <li class="reveal"><strong>Auxiliar Docente — UBA CBC</strong><span>Introducción al Conocimiento de la Sociedad y el Estado · 2003</span></li>
+          <li class="reveal"><strong>Mentora en Comunicación y Liderazgo</strong><span>2014–presente · Google, Disney, Uber, Visa, L'Oréal</span><div class="project-tags"><span class="project-tag">liderazgo</span><span class="project-tag">oratoria</span></div></li>
+        </ul>
+        <div class="quote-block reveal" style="border-left:3px solid var(--naranja);">"Mentorear no es transferir conocimiento. Es acompañar a alguien a encontrar su voz."</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SECCIÓN CULTURA ─── -->
+  <section class="section" id="cultura">
+    <svg class="blob-bg-deco" style="left:-80px;top:-50px;width:480px;" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <path d="M205,28 C300,5 390,95 395,195 C400,295 330,385 230,395 C130,405 40,330 28,228 C16,126 80,40 178,26 C188,24 197,30 205,28Z" fill="#C94F7B"/>
+    </svg>
+    <div class="section-inner">
+      <div class="section-tag reveal"><span class="line"></span>Cultura &amp; Arte</div>
+      <h2 class="section-title reveal">Cultura como<br>transformación</h2>
+      <p class="section-body reveal">TEDx, teatro, arte. Florencia entiende la cultura como un espacio de disputa de sentido y de construcción de nuevas narrativas colectivas.</p>
+      <div class="section-grid">
+        <ul class="item-list">
+          <li class="reveal"><strong>TEDxRiodelaPlata</strong><span>Miembro Organizadora · 2012–presente</span></li>
+          <li class="reveal"><strong>Complejo Teatral de Buenos Aires</strong><span>Gerente de Formación Artística y Nuevas Audiencias · 2016–2017</span></li>
+          <li class="reveal"><strong>Laboratorio de Acción — CTBA</strong><span>Creadora del espacio</span><div class="project-tags"><span class="project-tag">innovación cultural</span></div></li>
+          <li class="reveal"><strong>Historia General del Arte — MNBA</strong><span>2009–2011</span></li>
+        </ul>
+        <div class="quote-block reveal" style="border-left:3px solid var(--rosa);">"El arte no decora el mundo. Lo interpela."</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SECCIÓN COMUNICACIÓN ─── -->
+  <section class="section" id="comunicacion">
+    <svg class="blob-bg-deco" style="right:-70px;bottom:-60px;width:480px;" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <path d="M200,35 C290,12 385,98 390,195 C395,292 325,380 228,392 C131,404 42,338 30,240 C18,142 78,48 168,30 C179,27 190,38 200,35Z" fill="#3A6EA5"/>
+    </svg>
+    <div class="section-inner">
+      <div class="section-tag reveal"><span class="line"></span>Comunicación &amp; Periodismo</div>
+      <h2 class="section-title reveal">La palabra<br>como acción</h2>
+      <p class="section-body reveal">Periodista gráfica, radial y televisiva. Consultora internacional para la ONU y el BID. Disertante en Naciones Unidas, British Council e IDEA. Veedora de paz en Irlanda del Norte e Israel.</p>
+      <div class="section-grid">
+        <ul class="item-list">
+          <li class="reveal"><strong>Consultora Internacional — UIT (ONU) y BID</strong><span>2001–2002 · comunicación y tecnología</span></li>
+          <li class="reveal"><strong>Periodista</strong><span>Página 12 · La Nación · Crítica · 2009–2011</span><div class="project-tags"><span class="project-tag">política</span><span class="project-tag">cultura</span><span class="project-tag">sociedad</span></div></li>
+          <li class="reveal"><strong>Veedora en procesos de paz</strong><span>Irlanda del Norte · Israel</span></li>
+          <li class="reveal"><strong>Conferencias internacionales</strong><span>Naciones Unidas · British Council · IDEA</span></li>
+        </ul>
+        <div class="quote-block reveal" style="border-left:3px solid var(--azul);">"Comunicar es un acto de responsabilidad con la realidad que queremos construir."</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACTO -->
+  <section id="contacto">
+    <div style="position:relative;z-index:2;">
+      <h2 class="section-title">¿Hablamos?</h2>
+      <p>Buenos Aires, Argentina</p>
+      <div class="contact-links">
+        <a href="mailto:mfpolimeni@gmail.com" class="contact-link primary">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M2 4.5L9 10.5L16 4.5M2 4.5H16V14H2V4.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          mfpolimeni@gmail.com
+        </a>
+        <a href="tel:+5491158092489" class="contact-link secondary">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 2H7.5L9 6L7 7.5C7.8 9.2 9 10.5 10.5 11L12 9L16 10.5V14C16 15.1 15.1 16 14 16C7.4 16 2 10.6 2 4C2 2.9 2.9 2 4 2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          15-5809-2489
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2025 Florencia Polimeni · Buenos Aires, Argentina</p>
+  </footer>
+
+  <script>
+    // ── NAV al salir del hero ──
+    const nav = document.getElementById('nav');
+    const hero = document.getElementById('hero');
+    new IntersectionObserver(([e]) => nav.classList.toggle('visible', !e.isIntersecting), { threshold: 0.1 }).observe(hero);
+
+    // ── Config de cada blob ──
+    // cx/cy base en el viewBox (1000x650), radio de oscilación, velocidad
+    const BLOBS = [
+      { id: 'democracia',   baseCx: 420, baseCy: 280, ampX: 55, ampY: 45, period: 7200,  phase: 0.0 },
+      { id: 'agroecologia', baseCx: 300, baseCy: 420, ampX: 45, ampY: 55, period: 9100,  phase: 1.1 },
+      { id: 'educacion',    baseCx: 560, baseCy: 230, ampX: 50, ampY: 40, period: 8300,  phase: 2.3 },
+      { id: 'cultura',      baseCx: 650, baseCy: 400, ampX: 40, ampY: 55, period: 10200, phase: 3.7 },
+      { id: 'comunicacion', baseCx: 450, baseCy: 470, ampX: 55, ampY: 40, period: 7800,  phase: 5.0 },
+    ];
+
+    // ── Interactividad ──
+    const svg = document.getElementById('blob-canvas');
+    const svgRect = () => svg.getBoundingClientRect();
+
+    // Posición actual de cada blob (se actualiza en el loop)
+    const blobState = {};
+    BLOBS.forEach(b => { blobState[b.id] = { cx: b.baseCx, cy: b.baseCy }; });
+
+    // Label hover — posicionar sobre el centro actual del blob
+    function showLabel(id) {
+      const label = document.getElementById('label-' + id);
+      const r = svgRect();
+      const vbW = 1000, vbH = 650;
+      const scaleX = r.width  / vbW;
+      const scaleY = r.height / vbH;
+      const state  = blobState[id];
+      label.style.left = (r.left + state.cx * scaleX) + 'px';
+      label.style.top  = (r.top  + state.cy * scaleY) + 'px';
+      label.style.transform = 'translate(-50%, -50%)';
+      label.style.position = 'fixed';
+      label.classList.add('visible');
+    }
+
+    BLOBS.forEach(b => {
+      const el    = document.getElementById('blob-' + b.id);
+      const label = document.getElementById('label-' + b.id);
+
+      el.addEventListener('mouseenter', () => showLabel(b.id));
+      el.addEventListener('mouseleave', () => label.classList.remove('visible'));
+      el.addEventListener('click', () => document.querySelector(el.dataset.section).scrollIntoView({ behavior: 'smooth' }));
+
+      el.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.blob-label').forEach(l => l.classList.remove('visible'));
+        showLabel(b.id);
+      }, { passive: false });
+      el.addEventListener('touchend', () => {
+        setTimeout(() => document.querySelector(el.dataset.section).scrollIntoView({ behavior: 'smooth' }), 250);
+      });
+    });
+
+    // ── Loop de animación ──
+    function animLoop(ts) {
+      BLOBS.forEach(b => {
+        const t  = (ts / b.period) * Math.PI * 2 + b.phase;
+        const cx = b.baseCx + Math.sin(t)        * b.ampX;
+        const cy = b.baseCy + Math.cos(t * 1.37) * b.ampY;
+        const el = document.getElementById('blob-' + b.id);
+        el.setAttribute('cx', cx);
+        el.setAttribute('cy', cy);
+        blobState[b.id] = { cx, cy };
+      });
+      requestAnimationFrame(animLoop);
+    }
+    requestAnimationFrame(animLoop);
+
+    // ── Reveal on scroll ──
+    const revealObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealObs.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+  </script>
+</body>
+</html>
